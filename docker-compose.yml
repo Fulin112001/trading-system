@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  trading-system:
+    build: .
+    container_name: trading-system
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./database:/app/database
+      - ./exports:/app/exports
+      - ./config:/app/config
+      - ./config/settings.json:/app/config/settings.json
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    image: nginx:alpine
+    container_name: trading-frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    restart: unless-stopped
+    depends_on:
+      - trading-system

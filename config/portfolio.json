@@ -1,0 +1,75 @@
+{
+  "portfolios": {
+    "tw_stock": {
+      "name": "台股零股組合",
+      "currency": "TWD",
+      "initial_capital": 5000,
+      "available_capital": 5000,
+      "trade_type": "fractional",
+      "fee_rate": 0.001425,
+      "fee_min": 20,
+      "tax_rate": 0.003,
+      "strategies": {
+        "entry": {
+          "ma_crossover": true,
+          "rsi_oversold": true,
+          "rsi_threshold": 35,
+          "min_confirm": 1
+        },
+        "exit": {
+          "stop_loss_pct": 5.0,
+          "take_profit_pct": 10.0,
+          "ma_crossover_reverse": true
+        }
+      },
+      "position": {
+        "max_per_trade_pct": 20,
+        "max_positions": 3,
+        "min_trade_amount": 500
+      },
+      "watchlist": [
+        "0056.TW",
+        "0050.TW",
+        "00878.TW",
+        "2317.TW"
+      ]
+    },
+    "crypto": {
+      "name": "加密貨幣組合",
+      "currency": "USD",
+      "initial_capital": 0,
+      "available_capital": 0,
+      "trade_type": "spot",
+      "fee_rate": 0.001,
+      "fee_min": 0,
+      "tax_rate": 0,
+      "strategies": {
+        "entry": {
+          "ma_crossover": true,
+          "rsi_oversold": true,
+          "rsi_threshold": 40,
+          "min_confirm": 1
+        },
+        "exit": {
+          "stop_loss_pct": 8.0,
+          "take_profit_pct": 15.0,
+          "ma_crossover_reverse": true
+        }
+      },
+      "position": {
+        "max_per_trade_pct": 20,
+        "max_positions": 3,
+        "min_trade_amount": 10
+      },
+      "watchlist": [
+        "BTC-USD",
+        "ETH-USD",
+        "SOL-USD"
+      ]
+    }
+  },
+  "simulation": {
+    "enabled": true,
+    "note": "模擬交易模式，不會動用真實資金"
+  }
+}

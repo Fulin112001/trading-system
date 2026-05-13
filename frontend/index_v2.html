@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading System</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --bg2: #1a1d27; --bg3: #222536;
+  --border: #2e3148; --text: #e8eaf0; --muted: #8b8fa8;
+  --green: #00d48a; --red: #ff4f5e; --amber: #f5a623;
+  --blue: #4f8ef7; --purple: #9b7ff4;
+}
+body { background:var(--bg); color:var(--text); font-family:-apple-system,sans-serif; min-height:100vh; }
+.nav { display:flex; align-items:center; gap:8px; padding:16px 24px; background:var(--bg2); border-bottom:1px solid var(--border); overflow-x:auto; }
+.nav-title { font-size:15px; font-weight:600; margin-right:16px; white-space:nowrap; }
+.nav-btn { padding:7px 16px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); font-size:13px; cursor:pointer; white-space:nowrap; }
+.nav-btn.active { background:var(--bg3); color:var(--text); border-color:var(--blue); }
+.page { display:none; padding:24px; max-width:900px; margin:0 auto; }
+.page.active { display:block; }
+.metric-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+.metric { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; }
+.metric-label { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.metric-value { font-size:24px; font-weight:600; }
+.metric-sub { font-size:12px; margin-top:4px; color:var(--muted); }
+.up { color:var(--green); } .down { color:var(--red); } .amber { color:var(--amber); } .blue { color:var(--blue); }
+.card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+.card-title { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:16px; }
+.row { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); }
+.row:last-child { border-bottom:none; }
+.row-label { font-size:14px; }
+.row-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+.badge { padding:3px 10px; border-radius:99px; font-size:12px; font-weight:500; }
+.badge-green { background:rgba(0,212,138,0.15); color:var(--green); }
+.badge-red { background:rgba(255,79,94,0.15); color:var(--red); }
+.badge-amber { background:rgba(245,166,35,0.15); color:var(--amber); }
+.badge-blue { background:rgba(79,142,247,0.15); color:var(--blue); }
+.badge-gray { background:rgba(139,143,168,0.15); color:var(--muted); }
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.emergency-btn { width:100%; padding:14px; border-radius:10px; font-size:14px; font-weight:500; cursor:pointer; margin-bottom:8px; border:none; }
+.btn-red { background:rgba(255,79,94,0.15); color:var(--red); border:1px solid rgba(255,79,94,0.3)!important; }
+.btn-amber { background:rgba(245,166,35,0.15); color:var(--amber); border:1px solid rgba(245,166,35,0.3)!important; }
+.btn-gray { background:var(--bg3); color:var(--text); border:1px solid var(--border)!important; }
+.bar-wrap { background:var(--bg3); border-radius:99px; height:6px; flex:1; overflow:hidden; margin:0 12px; }
+.bar-fill { height:6px; border-radius:99px; }
+.mode-banner { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:10px; margin-bottom:16px; font-size:14px; }
+.mode-normal { background:rgba(0,212,138,0.1); border:1px solid rgba(0,212,138,0.2); color:var(--green); }
+.mode-defensive { background:rgba(245,166,35,0.1); border:1px solid rgba(245,166,35,0.2); color:var(--amber); }
+.mode-lockdown { background:rgba(255,79,94,0.1); border:1px solid rgba(255,79,94,0.2); color:var(--red); }
+input,select,textarea { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-size:14px; width:100%; margin-bottom:10px; outline:none; }
+input:focus,select:focus { border-color:var(--blue); }
+select option { background:var(--bg3); }
+.submit-btn { width:100%; padding:12px; border-radius:8px; background:var(--blue); color:white; border:none; font-size:14px; font-weight:500; cursor:pointer; margin-top:4px; }
+.signal-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.dot-green { background:var(--green); } .dot-red { background:var(--red); } .dot-gray { background:var(--muted); }
+.progress-label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; color:var(--muted); }
+.loading { color:var(--muted); font-size:14px; padding:20px 0; text-align:center; }
+.score-bar-wrap { background:var(--bg3); border-radius:99px; height:8px; margin:6px 0 14px; overflow:hidden; }
+.score-bar-fill { height:8px; border-radius:99px; }
+.clickable { cursor:pointer; }
+.clickable:hover { opacity:0.8; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:1000; justify-content:center; align-items:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:24px; width:90%; max-width:520px; max-height:85vh; overflow-y:auto; }
+.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+.modal-title { font-size:20px; font-weight:600; }
+.modal-close { background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; }
+@media(max-width:600px) { .two-col { grid-template-columns:1fr; } .page { padding:16px; } }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-title">📈 Trading System</div>
+  <button class="nav-btn active" onclick="showPage('trading',this)">Trading Engine</button>
+  <button class="nav-btn" onclick="showPage('bankroll',this)">Bankroll Engine</button>
+  <button class="nav-btn" onclick="showPage('finance',this)">個人財務</button>
+  <button class="nav-btn" onclick="showPage('watchlist',this)">標的評估</button>
+  <button class="nav-btn" onclick="showPage('market',this)">市場觀察</button>
+  <button class="nav-btn" onclick="showPage('portfolio',this)">投資組合</button>
+  <button class="nav-btn" onclick="showPage('backtest',this)">回測</button>
+</div>
+
+<!-- TRADING -->
+<div id="page-trading" class="page active">
+  <div class="metric-grid" id="trading-metrics"><div class="loading">載入中...</div></div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">最新訊號</div>
+      <div id="signals-list"><div class="loading">載入中...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">分析標的</div>
+      <input type="text" id="analyze-symbol" placeholder="輸入股票代號，例如：2330.TW">
+      <button class="submit-btn" onclick="analyzeSymbol()">開始分析</button>
+      <div id="analyze-result"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BANKROLL -->
+<div id="page-bankroll" class="page">
+  <div id="risk-mode-banner" class="mode-banner mode-normal">● 風控模式：NORMAL</div>
+  <div class="metric-grid" id="risk-metrics"><div class="loading">載入中...</div></div>
+  <div class="card">
+    <div class="card-title">緊急控制</div>
+    <button class="emergency-btn btn-red" onclick="emergencyStop()">🔴 全部平倉 / 緊急停止</button>
+    <button class="emergency-btn btn-amber" onclick="pauseTrading()">⏸ 暫停交易（保留倉位）</button>
+    <button class="emergency-btn btn-gray" onclick="resumeTrading()">▶ 恢復正常交易</button>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Portfolio 配置</div>
+      <div style="margin-bottom:14px">
+        <div class="progress-label"><span>長線組合</span><span>60%</span></div>
+        <div class="bar-wrap" style="margin:0"><div class="bar-fill" style="width:60%;background:var(--green)"></div></div>
+      </div>
+      <div>
+        <div class="progress-label"><span>短線組合</span><span>40%</span></div>
+        <div class="bar-wrap" style="margin:0"><div class="bar-fill" style="width:40%;background:var(--blue)"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">風控狀態</div>
+      <div id="risk-checks"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- FINANCE -->
+<div id="page-finance" class="page">
+  <div class="metric-grid" id="finance-metrics"><div class="loading">載入中...</div></div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">新增收支記錄</div>
+      <select id="finance-type"><option value="income">收入</option><option value="expense">支出</option></select>
+      <select id="finance-category">
+        <option value="investment">投資</option>
+        <option value="venture">創業項目</option>
+        <option value="living">生活</option>
+        <option value="other">其他</option>
+      </select>
+      <input type="text" id="finance-subcategory" placeholder="細項（例如：材料費、薪資）">
+      <input type="text" id="finance-venture" placeholder="創業項目名稱（選填）">
+      <input type="number" id="finance-amount" placeholder="金額">
+      <input type="text" id="finance-note" placeholder="備註（選填）">
+      <button class="submit-btn" onclick="addFinance()">新增記錄</button>
+    </div>
+    <div class="card">
+      <div class="card-title">創業項目損益</div>
+      <div id="ventures-list"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">最近記錄</div>
+    <div id="finance-list"><div class="loading">載入中...</div></div>
+  </div>
+</div>
+
+<!-- WATCHLIST -->
+<div id="page-watchlist" class="page">
+  <div class="metric-grid" id="watchlist-metrics"><div class="loading">載入中...</div></div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">新增並評估標的</div>
+      <input type="text" id="watch-symbol" placeholder="股票代號，例如：0056.TW">
+      <input type="text" id="watch-name" placeholder="名稱，例如：元大高股息">
+      <select id="watch-market">
+        <option value="TW_STOCK">台股</option>
+        <option value="CRYPTO">加密貨幣</option>
+        <option value="US_STOCK">美股</option>
+      </select>
+      <input type="text" id="watch-note" placeholder="備註（選填）">
+      <button class="submit-btn" onclick="evaluateAndAdd()">評估並加入追蹤</button>
+      <div id="eval-result" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">標的評分排行（點擊查看詳情）</div>
+      <div id="watchlist-list"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MARKET -->
+<div id="page-market" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div style="font-size:13px;color:var(--muted)" id="market-updated">更新中...</div>
+    <button class="submit-btn" style="width:auto;padding:8px 16px;margin:0" onclick="loadMarket()">重新整理</button>
+  </div>
+  <div class="metric-grid" id="market-crypto-grid"><div class="loading">載入中...</div></div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">🇹🇼 台股</div>
+      <div id="market-tw-list"><div class="loading">載入中...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🌍 美股 ETF</div>
+      <div id="market-us-list"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">單一標的查詢</div>
+    <div style="display:flex;gap:8px">
+      <input type="text" id="quote-symbol" placeholder="輸入代號，例如：2330.TW" style="flex:1;margin:0">
+      <button class="submit-btn" style="width:100px;margin:0" onclick="querySingleQuote()">查詢</button>
+    </div>
+    <div id="quote-result" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="detail-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modal-title">標的詳情</div>
+        <div style="font-size:13px;color:var(--muted)" id="modal-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('detail-modal').classList.remove('open')">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000/api';
+let marketTimer = null;
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'trading')   
+var currentPortfolio = 'tw_stock';
+
+function switchPortfolio(pt, btn) {
+  currentPortfolio = pt;
+  document.querySelectorAll('#pt-tw,#pt-crypto').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  loadPortfolio();
+}
+
+async function loadPortfolio() {
+  var status = await api('/portfolio/' + currentPortfolio);
+  var ic = status.initial_capital;
+  var ac = status.available_capital;
+  document.getElementById('portfolio-metrics').innerHTML =
+    '<div class="metric"><div class="metric-label">初始資金</div><div class="metric-value">$'+ic.toLocaleString()+'</div></div>'+
+    '<div class="metric"><div class="metric-label">可用資金</div><div class="metric-value blue">$'+ac.toFixed(0)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">未實現損益</div><div class="metric-value '+(status.unrealized_pnl>=0?'up':'down')+'">'+(status.unrealized_pnl>=0?'+':'')+'$'+status.unrealized_pnl.toFixed(2)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">勝率</div><div class="metric-value">'+status.win_rate.toFixed(1)+'%</div><div class="metric-sub">'+status.closed_trades+' 筆已完成</div></div>';
+
+  var positions = status.positions||[];
+  document.getElementById('positions-list').innerHTML = !positions.length
+    ? '<div class="loading">目前無持倉</div>'
+    : positions.map(function(p) {
+        var up = p.unrealized_pnl>=0;
+        return '<div class="row">'+
+          '<div><div class="row-label">'+p.symbol+'</div>'+
+          '<div class="row-sub">進場 $'+p.entry_price+' | 現價 $'+p.current_price+'</div>'+
+          '<div class="row-sub">停損 $'+p.stop_loss+' / 停利 $'+p.take_profit+'</div></div>'+
+          '<div style="text-align:right">'+
+          '<div class="'+(up?'up':'down')+'" style="font-weight:600">'+(up?'+':'')+'$'+p.unrealized_pnl.toFixed(2)+'</div>'+
+          '<div class="metric-sub '+(up?'up':'down')+'">'+(up?'+':'')+p.unrealized_pnl_pct.toFixed(2)+'%</div>'+
+          '<button onclick="doSell('+p.id+')" style="margin-top:4px;background:rgba(255,79,94,0.1);border:1px solid rgba(255,79,94,0.3);color:var(--red);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px">賣出</button>'+
+          '</div></div>';
+      }).join('');
+
+  var trades = await api('/trades');
+  var closed = trades.filter(function(t){return t.status==='closed';});
+  document.getElementById('closed-trades').innerHTML = !closed.length
+    ? '<div class="loading">尚無已完成交易</div>'
+    : closed.map(function(t) {
+        var up = t.pnl>=0;
+        return '<div class="row">'+
+          '<div><div class="row-label">'+t.symbol+'</div>'+
+          '<div class="row-sub">'+new Date(t.created_at).toLocaleDateString('zh-TW')+'</div></div>'+
+          '<div style="text-align:right">'+
+          '<div class="'+(up?'up':'down')+'" style="font-weight:600">'+(up?'+':'')+'$'+t.pnl.toFixed(2)+'</div>'+
+          '<span class="badge '+(up?'badge-green':'badge-red')+'">'+(up?'獲利':'虧損')+'</span>'+
+          '</div></div>';
+      }).join('');
+}
+
+async function doBuy() {
+  var symbol = document.getElementById('buy-symbol').value.trim();
+  var name   = document.getElementById('buy-name').value.trim();
+  if (!symbol||!name) { alert('請填寫代號和名稱'); return; }
+  document.getElementById('buy-result').innerHTML = '<div class="loading">執行中...</div>';
+  try {
+    var result = await api('/portfolio/buy','POST',{symbol:symbol,name:name,portfolio_type:currentPortfolio});
+    document.getElementById('buy-result').innerHTML =
+      '<div class="row"><div class="row-label">買入成功</div><span class="badge badge-green">模擬</span></div>'+
+      '<div class="row"><div class="row-label">價格</div><span>$'+result.price+'</span></div>'+
+      '<div class="row"><div class="row-label">數量</div><span>'+result.qty+' 股</span></div>'+
+      '<div class="row"><div class="row-label">手續費</div><span>$'+result.fee+'</span></div>'+
+      '<div class="row"><div class="row-label">停損</div><span class="down">$'+result.stop_loss+'</span></div>'+
+      '<div class="row"><div class="row-label">停利</div><span class="up">$'+result.take_profit+'</span></div>';
+    loadPortfolio();
+  } catch(e) {
+    document.getElementById('buy-result').innerHTML = '<div class="loading">買入失敗</div>';
+  }
+}
+
+async function doSell(tradeId) {
+  if (!confirm('確定賣出？')) return;
+  try {
+    var result = await api('/portfolio/sell','POST',{trade_id:tradeId,portfolio_type:currentPortfolio});
+    var up = result.pnl>=0;
+    alert((up?'獲利出場！':'虧損出場') + ' 損益：'+(up?'+':'')+'$'+result.pnl.toFixed(2));
+    loadPortfolio();
+  } catch(e) { alert('賣出失敗'); }
+}
+
+async function doBacktest() {
+  var symbol  = document.getElementById('bt-symbol').value.trim();
+  var capital = parseFloat(document.getElementById('bt-capital').value)||5000;
+  var sl      = parseFloat(document.getElementById('bt-sl').value)||5;
+  var tp      = parseFloat(document.getElementById('bt-tp').value)||10;
+  if (!symbol) { alert('請填寫代號'); return; }
+  document.getElementById('backtest-result').innerHTML = '<div class="loading">回測中，請稍候...</div>';
+  try {
+    var r = await api('/backtest','POST',{symbol:symbol,initial_capital:capital,stop_loss_pct:sl,take_profit_pct:tp});
+    var up = r.total_pnl>=0;
+    var pfColor = r.profit_factor>=2?'var(--green)':r.profit_factor>=1.5?'var(--amber)':'var(--red)';
+    var html =
+      '<div class="metric-grid" style="margin-top:16px">'+
+      '<div class="metric"><div class="metric-label">總報酬</div><div class="metric-value '+(up?'up':'down')+'">'+(up?'+':'')+r.total_return_pct.toFixed(2)+'%</div></div>'+
+      '<div class="metric"><div class="metric-label">勝率</div><div class="metric-value">'+r.win_rate+'%</div></div>'+
+      '<div class="metric"><div class="metric-label">Profit Factor</div><div class="metric-value" style="color:'+pfColor+'">'+r.profit_factor+'</div></div>'+
+      '<div class="metric"><div class="metric-label">最大回撤</div><div class="metric-value '+(r.max_drawdown>10?'down':'up')+'">'+r.max_drawdown+'%</div></div>'+
+      '</div>'+
+      '<div class="card" style="margin-top:12px">'+
+      '<div class="card-title">'+r.symbol+' 回測摘要　'+r.period+'</div>'+
+      '<div class="row"><div class="row-label">初始資金</div><span>$'+r.initial_capital.toLocaleString()+'</span></div>'+
+      '<div class="row"><div class="row-label">最終資金</div><span style="font-weight:600">$'+r.final_capital.toLocaleString()+'</span></div>'+
+      '<div class="row"><div class="row-label">總損益</div><span class="'+(up?'up':'down')+'" style="font-weight:600">'+(up?'+':'')+'$'+r.total_pnl.toFixed(2)+'</span></div>'+
+      '<div class="row"><div class="row-label">總交易次數</div><span>'+r.total_trades+'</span></div>'+
+      '<div class="row"><div class="row-label">平均獲利</div><span class="up">+$'+r.avg_win.toFixed(2)+'</span></div>'+
+      '<div class="row"><div class="row-label">平均虧損</div><span class="down">$'+r.avg_loss.toFixed(2)+'</span></div>'+
+      '</div>';
+    if (r.trades&&r.trades.length) {
+      html += '<div class="card" style="margin-top:12px"><div class="card-title">最近交易記錄</div>';
+      r.trades.slice(-5).forEach(function(t) {
+        var tw = t.result==='WIN';
+        html += '<div class="row"><div><div class="row-label">'+(tw?'✅':'❌')+' '+t.date+'</div>'+
+          '<div class="row-sub">進 $'+t.entry+' → 出 $'+t.exit+'</div></div>'+
+          '<span class="'+(tw?'up':'down')+'" style="font-weight:600">'+(t.pnl>=0?'+':'')+'$'+t.pnl.toFixed(2)+'</span></div>';
+      });
+      html += '</div>';
+    }
+    document.getElementById('backtest-result').innerHTML = html;
+  } catch(e) {
+    document.getElementById('backtest-result').innerHTML = '<div class="loading">回測失敗</div>';
+  }
+}
+
+function quickBacktest(symbol) {
+  document.getElementById('bt-symbol').value = symbol;
+  doBacktest();
+}
+
+loadTrading();
+  if (name === 'bankroll')  loadBankroll();
+  if (name === 'finance')   loadFinance();
+  if (name === 'watchlist') loadWatchlist();
+  if (name === 'market')    loadMarket();
+  if (name === 'portfolio') loadPortfolio();
+  if (name === 'backtest')  document.getElementById('backtest-result').innerHTML='';
+}
+
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  return res.json();
+}
+
+// ── TRADING ──
+async function loadTrading() {
+  const status = await api('/status');
+  document.getElementById('trading-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">券商</div><div class="metric-value blue" style="font-size:16px">${status.broker_name}</div><div class="metric-sub">${status.market}</div></div>
+    <div class="metric"><div class="metric-label">風控模式</div><div class="metric-value ${status.risk.mode==='NORMAL'?'up':status.risk.mode==='DEFENSIVE'?'amber':'down'}">${status.risk.mode}</div></div>
+    <div class="metric"><div class="metric-label">可用資金</div><div class="metric-value">$${status.risk.capital.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">今日損益</div><div class="metric-value ${status.risk.daily_pnl>=0?'up':'down'}">${status.risk.daily_pnl>=0?'+':''}$${status.risk.daily_pnl}</div></div>
+  `;
+  const signals = await api('/signals');
+  document.getElementById('signals-list').innerHTML = !signals.length
+    ? '<div class="loading">尚無訊號記錄</div>'
+    : signals.slice(0,5).map(s => `
+      <div class="row">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="signal-dot ${s.direction==='BUY'?'dot-green':s.direction==='SELL'?'dot-red':'dot-gray'}"></div>
+          <div><div class="row-label">${s.symbol}</div><div class="row-sub">${s.reason}</div></div>
+        </div>
+        <span class="badge ${s.direction==='BUY'?'badge-green':s.direction==='SELL'?'badge-red':'badge-gray'}">${s.direction}</span>
+      </div>`).join('');
+}
+
+async function analyzeSymbol() {
+  const symbol = document.getElementById('analyze-symbol').value.trim();
+  if (!symbol) return;
+  document.getElementById('analyze-result').innerHTML = '<div class="loading">分析中...</div>';
+  const result = await api('/signals/analyze/' + symbol);
+  document.getElementById('analyze-result').innerHTML = `
+    <div style="margin-top:12px">
+      <div class="row"><div class="row-label">方向</div><span class="badge ${result.direction==='BUY'?'badge-green':result.direction==='SELL'?'badge-red':'badge-gray'}">${result.direction}</span></div>
+      <div class="row"><div class="row-label">信心分數</div><span class="blue">${result.confidence.toFixed(1)}%</span></div>
+      <div class="row"><div class="row-label">市場狀態</div><span style="font-size:13px;color:var(--muted)">${result.market_state}</span></div>
+      <div style="padding:10px 0;font-size:13px;color:var(--muted)">${result.reason}</div>
+    </div>`;
+}
+
+// ── BANKROLL ──
+async function loadBankroll() {
+  const risk = await api('/risk/status');
+  document.getElementById('risk-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">可用資金</div><div class="metric-value">$${risk.capital.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">今日損益</div><div class="metric-value ${risk.daily_pnl>=0?'up':'down'}">${risk.daily_pnl>=0?'+':''}$${risk.daily_pnl}</div></div>
+    <div class="metric"><div class="metric-label">連敗次數</div><div class="metric-value ${risk.consecutive_losses>=3?'down':risk.consecutive_losses>=2?'amber':'up'}">${risk.consecutive_losses}</div><div class="metric-sub">上限 3 次</div></div>
+    <div class="metric"><div class="metric-label">總回撤</div><div class="metric-value ${risk.total_drawdown>=10?'down':'up'}">${risk.total_drawdown.toFixed(1)}%</div></div>
+  `;
+  const banner = document.getElementById('risk-mode-banner');
+  banner.className = 'mode-banner mode-' + risk.mode.toLowerCase();
+  banner.textContent = '● 風控模式：' + risk.mode;
+  document.getElementById('risk-checks').innerHTML = `
+    <div class="row"><div class="row-label">每日虧損</div><span class="badge badge-green">安全</span></div>
+    <div class="row"><div class="row-label">連敗保護</div><span class="badge ${risk.consecutive_losses>=3?'badge-red':'badge-green'}">${risk.consecutive_losses>=3?'警告':'正常'}</span></div>
+    <div class="row"><div class="row-label">緊急停止</div><span class="badge ${risk.emergency_stop?'badge-red':'badge-green'}">${risk.emergency_stop?'已啟動':'未啟動'}</span></div>
+    <div class="row"><div class="row-label">可以交易</div><span class="badge ${risk.can_trade?'badge-green':'badge-red'}">${risk.can_trade?'是':'否'}</span></div>
+  `;
+}
+
+async function emergencyStop() {
+  if (!confirm('確定要緊急停止所有交易？')) return;
+  await api('/risk/emergency-stop','POST');
+  alert('緊急停止已啟動！');
+  loadBankroll();
+}
+async function pauseTrading() { await api('/risk/pause','POST'); alert('交易已暫停'); loadBankroll(); }
+async function resumeTrading() { await api('/risk/resume','POST'); alert('已恢復正常交易'); loadBankroll(); }
+
+// ── FINANCE ──
+async function loadFinance() {
+  const summary = await api('/finance/summary');
+  document.getElementById('finance-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">總收入</div><div class="metric-value up">$${summary.total_income.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">總支出</div><div class="metric-value down">$${summary.total_expense.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">淨結餘</div><div class="metric-value ${summary.net>=0?'up':'down'}">${summary.net>=0?'+':''}$${summary.net.toLocaleString()}</div></div>
+  `;
+  const ventures = Object.entries(summary.ventures);
+  document.getElementById('ventures-list').innerHTML = !ventures.length
+    ? '<div class="loading">尚無創業項目記錄</div>'
+    : ventures.map(function(entry) {
+        var n=entry[0], v=entry[1];
+        var pnl = v.income - v.expense;
+        return '<div class="row"><div><div class="row-label">'+n+'</div><div class="row-sub">收入 $'+v.income+' / 支出 $'+v.expense+'</div></div><span class="badge '+(pnl>=0?'badge-green':'badge-red')+'">'+(pnl>=0?'+':'')+'$'+pnl+'</span></div>';
+      }).join('');
+  const entries = await api('/finance');
+  document.getElementById('finance-list').innerHTML = !entries.length
+    ? '<div class="loading">尚無記錄</div>'
+    : entries.slice(0,10).map(function(e) {
+        return '<div class="row"><div><div class="row-label">'+(e.sub_category||e.category)+(e.venture?' · '+e.venture:'')+'</div><div class="row-sub">'+(e.note||'')+' '+new Date(e.created_at).toLocaleDateString('zh-TW')+'</div></div><span class="'+(e.type==='income'?'up':'down')+'" style="font-size:14px;font-weight:500">'+(e.type==='income'?'+':'-')+'$'+e.amount.toLocaleString()+'</span></div>';
+      }).join('');
+}
+
+async function addFinance() {
+  var body = {
+    type: document.getElementById('finance-type').value,
+    category: document.getElementById('finance-category').value,
+    sub_category: document.getElementById('finance-subcategory').value,
+    venture: document.getElementById('finance-venture').value,
+    amount: parseFloat(document.getElementById('finance-amount').value),
+    note: document.getElementById('finance-note').value
+  };
+  if (!body.amount || !body.sub_category) { alert('請填寫細項和金額'); return; }
+  await api('/finance','POST',body);
+  alert('記錄新增成功！');
+  loadFinance();
+}
+
+// ── WATCHLIST ──
+async function loadWatchlist() {
+  const items = await api('/watchlist');
+  document.getElementById('watchlist-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">追蹤標的</div><div class="metric-value">${items.length}</div></div>
+    <div class="metric"><div class="metric-label">高分標的</div><div class="metric-value up">${items.filter(function(i){return i.score>=80;}).length}</div><div class="metric-sub">評分 ≥ 80</div></div>
+    <div class="metric"><div class="metric-label">觀察中</div><div class="metric-value amber">${items.filter(function(i){return i.status==='watching';}).length}</div></div>
+  `;
+  document.getElementById('watchlist-list').innerHTML = !items.length
+    ? '<div class="loading">尚無追蹤標的</div>'
+    : items.map(function(w) {
+        var sc = w.score>=80?'badge-green':w.score>=60?'badge-amber':'badge-red';
+        var sv = w.score>=80?'推薦':w.score>=60?'觀察':'謹慎';
+        var vc = w.score>=80?'var(--green)':w.score>=60?'var(--amber)':'var(--red)';
+        return '<div class="row"><div style="cursor:pointer" onclick="showDetail(\''+w.symbol+'\',\''+w.name+'\',\''+w.market+'\')"><div class="row-label">'+w.symbol+' '+w.name+'</div><div class="row-sub">'+w.market+(w.note?' · '+w.note:'')+'</div></div><div style="display:flex;align-items:center;gap:10px"><div style="text-align:right;cursor:pointer" onclick="showDetail(\''+w.symbol+'\',\''+w.name+'\',\''+w.market+'\')"><div style="font-size:18px;font-weight:600;color:'+vc+'">'+w.score+'</div><span class="badge '+sc+'">'+sv+'</span></div><button onclick="deleteWatchlist('+w.id+')" style="background:rgba(255,79,94,0.1);border:1px solid rgba(255,79,94,0.3);color:var(--red);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px">刪除</button></div></div>';
+      }).join('');
+}
+
+async function evaluateAndAdd() {
+  var symbol = document.getElementById('watch-symbol').value.trim();
+  var name   = document.getElementById('watch-name').value.trim();
+  var market = document.getElementById('watch-market').value;
+  if (!symbol || !name) { alert('請填寫代號和名稱'); return; }
+  document.getElementById('eval-result').innerHTML = '<div class="loading">評估中，請稍候...</div>';
+  try {
+    var result = await api('/evaluate/'+symbol+'?name='+encodeURIComponent(name)+'&market='+market);
+    var sc = result.final_score>=80?'badge-green':result.final_score>=65?'badge-amber':'badge-red';
+    var vc = result.final_score>=80?'var(--green)':result.final_score>=65?'var(--amber)':'var(--red)';
+    document.getElementById('eval-result').innerHTML =
+      '<div class="row"><div class="row-label">綜合評分</div><span style="font-size:20px;font-weight:500;color:'+vc+'">'+result.final_score+'/100</span></div>'+
+      '<div class="row"><div class="row-label">建議</div><span class="badge '+sc+'">'+result.recommendation+'</span></div>';
+    loadWatchlist();
+  } catch(e) {
+    document.getElementById('eval-result').innerHTML = '<div class="loading">評估失敗，請確認代號格式</div>';
+  }
+}
+
+async function deleteWatchlist(id) {
+  if (!confirm('確定刪除這個標的？')) return;
+  await api('/watchlist/'+id,'DELETE');
+  loadWatchlist();
+}
+
+// ── MODAL 詳情 ──
+async function showDetail(symbol, name, market) {
+  document.getElementById('detail-modal').classList.add('open');
+  document.getElementById('modal-title').textContent = name + ' (' + symbol + ')';
+  document.getElementById('modal-subtitle').textContent = market;
+  document.getElementById('modal-body').innerHTML = '<div class="loading">評估中...</div>';
+  try {
+    var result = await api('/evaluate/'+symbol+'?name='+encodeURIComponent(name)+'&market='+market);
+    var d = result.detail;
+    var vc = result.final_score>=80?'var(--green)':result.final_score>=65?'var(--amber)':'var(--red)';
+    var sc = result.final_score>=80?'badge-green':result.final_score>=65?'badge-amber':'badge-red';
+    var rsi = parseFloat(d.detail && d.detail.RSI || 0);
+    var rsiNote = rsi>70?'⚠️ 超買區':rsi<30?'⚠️ 超賣區':'✅ 正常區間';
+    var html = '';
+    html += '<div style="margin-bottom:20px">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;color:var(--muted)">綜合評分</span><span style="font-size:22px;font-weight:600;color:'+vc+'">'+result.final_score+'/100</span></div>';
+    html += '<div class="score-bar-wrap"><div class="score-bar-fill" style="width:'+result.final_score+'%;background:'+vc+'"></div></div>';
+    html += '<div style="text-align:center"><span class="badge '+sc+'">'+result.recommendation+'</span></div>';
+    html += '</div>';
+    html += '<div class="card" style="margin-bottom:12px"><div class="card-title">價格資訊</div>';
+    html += '<div class="row"><div class="row-label">現價</div><span style="font-size:16px;font-weight:500">$'+result.price.toLocaleString()+'</span></div>';
+    html += '<div class="row"><div class="row-label">今日漲跌</div><span class="'+(result.change_pct>=0?'up':'down')+'" style="font-weight:500">'+(result.change_pct>=0?'▲ +':'▼ ')+Math.abs(result.change_pct).toFixed(2)+'%</span></div>';
+    if (result.fundamentals && result.fundamentals.high_52w) html += '<div class="row"><div class="row-label">52週最高</div><span>$'+result.fundamentals.high_52w.toLocaleString()+'</span></div>';
+    if (result.fundamentals && result.fundamentals.low_52w)  html += '<div class="row"><div class="row-label">52週最低</div><span>$'+result.fundamentals.low_52w.toLocaleString()+'</span></div>';
+    html += '</div>';
+    html += '<div class="card"><div class="card-title">技術面評分細項</div>';
+    html += '<div class="row"><div class="row-label">均線趨勢</div><div style="display:flex;align-items:center;gap:8px"><div class="bar-wrap" style="width:80px;margin:0"><div class="bar-fill" style="width:'+(d['均線趨勢']/25*100)+'%;background:var(--blue)"></div></div><span style="font-size:13px">'+d['均線趨勢']+'/25</span></div></div>';
+    html += '<div style="padding:4px 0 10px;font-size:12px;color:var(--muted)">'+(d.detail&&d.detail['均線']||'')+'</div>';
+    html += '<div class="row"><div class="row-label">RSI 強弱</div><div style="display:flex;align-items:center;gap:8px"><div class="bar-wrap" style="width:80px;margin:0"><div class="bar-fill" style="width:'+(d['RSI']/25*100)+'%;background:var(--amber)"></div></div><span style="font-size:13px">'+d['RSI']+'/25</span></div></div>';
+    html += '<div style="padding:4px 0 10px;font-size:12px;color:var(--muted)">RSI '+(d.detail&&d.detail['RSI']||'')+' '+rsiNote+'</div>';
+    html += '<div class="row"><div class="row-label">成交量</div><div style="display:flex;align-items:center;gap:8px"><div class="bar-wrap" style="width:80px;margin:0"><div class="bar-fill" style="width:'+(d['成交量']/25*100)+'%;background:var(--green)"></div></div><span style="font-size:13px">'+d['成交量']+'/25</span></div></div>';
+    html += '<div style="padding:4px 0 10px;font-size:12px;color:var(--muted)">'+(d.detail&&d.detail['成交量']||'')+'</div>';
+    html += '<div class="row"><div class="row-label">年內位置</div><div style="display:flex;align-items:center;gap:8px"><div class="bar-wrap" style="width:80px;margin:0"><div class="bar-fill" style="width:'+(d['年內位置']/25*100)+'%;background:var(--purple)"></div></div><span style="font-size:13px">'+d['年內位置']+'/25</span></div></div>';
+    html += '<div style="padding:4px 0 4px;font-size:12px;color:var(--muted)">'+(d.detail&&d.detail['年內位置']||'')+'</div>';
+    html += '</div>';
+    document.getElementById('modal-body').innerHTML = html;
+  } catch(e) {
+    document.getElementById('modal-body').innerHTML = '<div class="loading">載入失敗</div>';
+  }
+}
+
+// ── MARKET ──
+async function loadMarket() {
+  document.getElementById('market-updated').textContent = '更新中...';
+  const snap = await api('/market/snapshot');
+  const cryptos = Object.values(snap.crypto||{});
+  document.getElementById('market-crypto-grid').innerHTML = !cryptos.length ? '<div class="loading">載入中...</div>'
+    : cryptos.map(function(c) {
+        var up = c.change_pct>=0;
+        return '<div class="metric"><div class="metric-label">'+c.name+'</div><div class="metric-value '+(up?'up':'down')+'">$'+c.price.toLocaleString()+'</div><div class="metric-sub '+(up?'up':'down')+'">'+(up?'▲ +':'▼ ')+Math.abs(c.change_pct).toFixed(2)+'%</div></div>';
+      }).join('');
+  const tw = Object.values(snap.tw_stocks||{});
+  document.getElementById('market-tw-list').innerHTML = !tw.length ? '<div class="loading">休市中</div>'
+    : tw.map(function(s) {
+        var up = s.change_pct>=0;
+        return '<div class="row"><div><div class="row-label">'+s.name+'</div><div class="row-sub">'+s.symbol+'</div></div><div style="text-align:right"><div style="font-size:16px;font-weight:500">$'+s.price.toLocaleString()+'</div><div class="metric-sub '+(up?'up':'down')+'">'+(up?'▲ +':'▼ ')+Math.abs(s.change_pct).toFixed(2)+'%</div></div></div>';
+      }).join('');
+  const us = Object.values(snap.us_etf||{});
+  document.getElementById('market-us-list').innerHTML = !us.length ? '<div class="loading">休市中</div>'
+    : us.map(function(s) {
+        var up = s.change_pct>=0;
+        return '<div class="row"><div><div class="row-label">'+s.name+'</div><div class="row-sub">'+s.symbol+'</div></div><div style="text-align:right"><div style="font-size:16px;font-weight:500">$'+s.price.toLocaleString()+'</div><div class="metric-sub '+(up?'up':'down')+'">'+(up?'▲ +':'▼ ')+Math.abs(s.change_pct).toFixed(2)+'%</div></div></div>';
+      }).join('');
+  document.getElementById('market-updated').textContent = '最後更新：' + new Date().toLocaleTimeString('zh-TW');
+}
+
+async function querySingleQuote() {
+  var symbol = document.getElementById('quote-symbol').value.trim();
+  if (!symbol) return;
+  document.getElementById('quote-result').innerHTML = '<div class="loading">查詢中...</div>';
+  var data = await api('/market/quote/'+symbol);
+  if (data.error) { document.getElementById('quote-result').innerHTML = '<div class="loading">查無資料</div>'; return; }
+  var up = data.change_pct>=0;
+  document.getElementById('quote-result').innerHTML =
+    '<div class="row"><div class="row-label">代號</div><span>'+data.symbol+'</span></div>'+
+    '<div class="row"><div class="row-label">價格</div><span style="font-size:18px;font-weight:500">$'+data.price.toLocaleString()+'</span></div>'+
+    '<div class="row"><div class="row-label">漲跌</div><span class="'+(up?'up':'down')+'" style="font-weight:500">'+(up?'▲ +':'▼ ')+Math.abs(data.change_pct).toFixed(2)+'%</span></div>'+
+    '<div class="row"><div class="row-label">最高</div><span>$'+data.high.toLocaleString()+'</span></div>'+
+    '<div class="row"><div class="row-label">最低</div><span>$'+data.low.toLocaleString()+'</span></div>';
+}
+
+
+var currentPortfolio = 'tw_stock';
+
+function switchPortfolio(pt, btn) {
+  currentPortfolio = pt;
+  document.querySelectorAll('#pt-tw,#pt-crypto').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  loadPortfolio();
+}
+
+async function loadPortfolio() {
+  var status = await api('/portfolio/' + currentPortfolio);
+  var ic = status.initial_capital;
+  var ac = status.available_capital;
+  document.getElementById('portfolio-metrics').innerHTML =
+    '<div class="metric"><div class="metric-label">初始資金</div><div class="metric-value">$'+ic.toLocaleString()+'</div></div>'+
+    '<div class="metric"><div class="metric-label">可用資金</div><div class="metric-value blue">$'+ac.toFixed(0)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">未實現損益</div><div class="metric-value '+(status.unrealized_pnl>=0?'up':'down')+'">'+(status.unrealized_pnl>=0?'+':'')+'$'+status.unrealized_pnl.toFixed(2)+'</div></div>'+
+    '<div class="metric"><div class="metric-label">勝率</div><div class="metric-value">'+status.win_rate.toFixed(1)+'%</div><div class="metric-sub">'+status.closed_trades+' 筆已完成</div></div>';
+
+  var positions = status.positions||[];
+  document.getElementById('positions-list').innerHTML = !positions.length
+    ? '<div class="loading">目前無持倉</div>'
+    : positions.map(function(p) {
+        var up = p.unrealized_pnl>=0;
+        return '<div class="row">'+
+          '<div><div class="row-label">'+p.symbol+'</div>'+
+          '<div class="row-sub">進場 $'+p.entry_price+' | 現價 $'+p.current_price+'</div>'+
+          '<div class="row-sub">停損 $'+p.stop_loss+' / 停利 $'+p.take_profit+'</div></div>'+
+          '<div style="text-align:right">'+
+          '<div class="'+(up?'up':'down')+'" style="font-weight:600">'+(up?'+':'')+'$'+p.unrealized_pnl.toFixed(2)+'</div>'+
+          '<div class="metric-sub '+(up?'up':'down')+'">'+(up?'+':'')+p.unrealized_pnl_pct.toFixed(2)+'%</div>'+
+          '<button onclick="doSell('+p.id+')" style="margin-top:4px;background:rgba(255,79,94,0.1);border:1px solid rgba(255,79,94,0.3);color:var(--red);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:11px">賣出</button>'+
+          '</div></div>';
+      }).join('');
+
+  var trades = await api('/trades');
+  var closed = trades.filter(function(t){return t.status==='closed';});
+  document.getElementById('closed-trades').innerHTML = !closed.length
+    ? '<div class="loading">尚無已完成交易</div>'
+    : closed.map(function(t) {
+        var up = t.pnl>=0;
+        return '<div class="row">'+
+          '<div><div class="row-label">'+t.symbol+'</div>'+
+          '<div class="row-sub">'+new Date(t.created_at).toLocaleDateString('zh-TW')+'</div></div>'+
+          '<div style="text-align:right">'+
+          '<div class="'+(up?'up':'down')+'" style="font-weight:600">'+(up?'+':'')+'$'+t.pnl.toFixed(2)+'</div>'+
+          '<span class="badge '+(up?'badge-green':'badge-red')+'">'+(up?'獲利':'虧損')+'</span>'+
+          '</div></div>';
+      }).join('');
+}
+
+async function doBuy() {
+  var symbol = document.getElementById('buy-symbol').value.trim();
+  var name   = document.getElementById('buy-name').value.trim();
+  if (!symbol||!name) { alert('請填寫代號和名稱'); return; }
+  document.getElementById('buy-result').innerHTML = '<div class="loading">執行中...</div>';
+  try {
+    var result = await api('/portfolio/buy','POST',{symbol:symbol,name:name,portfolio_type:currentPortfolio});
+    document.getElementById('buy-result').innerHTML =
+      '<div class="row"><div class="row-label">買入成功</div><span class="badge badge-green">模擬</span></div>'+
+      '<div class="row"><div class="row-label">價格</div><span>$'+result.price+'</span></div>'+
+      '<div class="row"><div class="row-label">數量</div><span>'+result.qty+' 股</span></div>'+
+      '<div class="row"><div class="row-label">手續費</div><span>$'+result.fee+'</span></div>'+
+      '<div class="row"><div class="row-label">停損</div><span class="down">$'+result.stop_loss+'</span></div>'+
+      '<div class="row"><div class="row-label">停利</div><span class="up">$'+result.take_profit+'</span></div>';
+    loadPortfolio();
+  } catch(e) {
+    document.getElementById('buy-result').innerHTML = '<div class="loading">買入失敗</div>';
+  }
+}
+
+async function doSell(tradeId) {
+  if (!confirm('確定賣出？')) return;
+  try {
+    var result = await api('/portfolio/sell','POST',{trade_id:tradeId,portfolio_type:currentPortfolio});
+    var up = result.pnl>=0;
+    alert((up?'獲利出場！':'虧損出場') + ' 損益：'+(up?'+':'')+'$'+result.pnl.toFixed(2));
+    loadPortfolio();
+  } catch(e) { alert('賣出失敗'); }
+}
+
+async function doBacktest() {
+  var symbol  = document.getElementById('bt-symbol').value.trim();
+  var capital = parseFloat(document.getElementById('bt-capital').value)||5000;
+  var sl      = parseFloat(document.getElementById('bt-sl').value)||5;
+  var tp      = parseFloat(document.getElementById('bt-tp').value)||10;
+  if (!symbol) { alert('請填寫代號'); return; }
+  document.getElementById('backtest-result').innerHTML = '<div class="loading">回測中，請稍候...</div>';
+  try {
+    var r = await api('/backtest','POST',{symbol:symbol,initial_capital:capital,stop_loss_pct:sl,take_profit_pct:tp});
+    var up = r.total_pnl>=0;
+    var pfColor = r.profit_factor>=2?'var(--green)':r.profit_factor>=1.5?'var(--amber)':'var(--red)';
+    var html =
+      '<div class="metric-grid" style="margin-top:16px">'+
+      '<div class="metric"><div class="metric-label">總報酬</div><div class="metric-value '+(up?'up':'down')+'">'+(up?'+':'')+r.total_return_pct.toFixed(2)+'%</div></div>'+
+      '<div class="metric"><div class="metric-label">勝率</div><div class="metric-value">'+r.win_rate+'%</div></div>'+
+      '<div class="metric"><div class="metric-label">Profit Factor</div><div class="metric-value" style="color:'+pfColor+'">'+r.profit_factor+'</div></div>'+
+      '<div class="metric"><div class="metric-label">最大回撤</div><div class="metric-value '+(r.max_drawdown>10?'down':'up')+'">'+r.max_drawdown+'%</div></div>'+
+      '</div>'+
+      '<div class="card" style="margin-top:12px">'+
+      '<div class="card-title">'+r.symbol+' 回測摘要　'+r.period+'</div>'+
+      '<div class="row"><div class="row-label">初始資金</div><span>$'+r.initial_capital.toLocaleString()+'</span></div>'+
+      '<div class="row"><div class="row-label">最終資金</div><span style="font-weight:600">$'+r.final_capital.toLocaleString()+'</span></div>'+
+      '<div class="row"><div class="row-label">總損益</div><span class="'+(up?'up':'down')+'" style="font-weight:600">'+(up?'+':'')+'$'+r.total_pnl.toFixed(2)+'</span></div>'+
+      '<div class="row"><div class="row-label">總交易次數</div><span>'+r.total_trades+'</span></div>'+
+      '<div class="row"><div class="row-label">平均獲利</div><span class="up">+$'+r.avg_win.toFixed(2)+'</span></div>'+
+      '<div class="row"><div class="row-label">平均虧損</div><span class="down">$'+r.avg_loss.toFixed(2)+'</span></div>'+
+      '</div>';
+    if (r.trades&&r.trades.length) {
+      html += '<div class="card" style="margin-top:12px"><div class="card-title">最近交易記錄</div>';
+      r.trades.slice(-5).forEach(function(t) {
+        var tw = t.result==='WIN';
+        html += '<div class="row"><div><div class="row-label">'+(tw?'✅':'❌')+' '+t.date+'</div>'+
+          '<div class="row-sub">進 $'+t.entry+' → 出 $'+t.exit+'</div></div>'+
+          '<span class="'+(tw?'up':'down')+'" style="font-weight:600">'+(t.pnl>=0?'+':'')+'$'+t.pnl.toFixed(2)+'</span></div>';
+      });
+      html += '</div>';
+    }
+    document.getElementById('backtest-result').innerHTML = html;
+  } catch(e) {
+    document.getElementById('backtest-result').innerHTML = '<div class="loading">回測失敗</div>';
+  }
+}
+
+function quickBacktest(symbol) {
+  document.getElementById('bt-symbol').value = symbol;
+  doBacktest();
+}
+
+loadTrading();
+</script>
+
+<div id="page-portfolio" class="page">
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <button class="nav-btn active" id="pt-tw" onclick="switchPortfolio('tw_stock',this)">台股零股</button>
+    <button class="nav-btn" id="pt-crypto" onclick="switchPortfolio('crypto',this)">加密貨幣</button>
+  </div>
+  <div class="metric-grid" id="portfolio-metrics"><div class="loading">載入中...</div></div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">模擬買入</div>
+      <input type="text" id="buy-symbol" placeholder="代號，例如：0056.TW">
+      <input type="text" id="buy-name" placeholder="名稱，例如：元大高股息">
+      <button class="submit-btn" onclick="doBuy()">模擬買入</button>
+      <div id="buy-result" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">目前持倉</div>
+      <div id="positions-list"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">已完成交易</div>
+    <div id="closed-trades"><div class="loading">載入中...</div></div>
+  </div>
+</div>
+
+<div id="page-backtest" class="page">
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">回測設定</div>
+      <input type="text" id="bt-symbol" placeholder="代號，例如：0056.TW">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">初始資金</div>
+          <input type="number" id="bt-capital" value="5000" style="margin:0">
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">停損 %</div>
+          <input type="number" id="bt-sl" value="5" style="margin:0">
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px">停利 %</div>
+          <input type="number" id="bt-tp" value="10" style="margin:0">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="doBacktest()">開始回測</button>
+    </div>
+    <div class="card">
+      <div class="card-title">快速回測</div>
+      <div class="row"><div class="row-label">0056.TW 元大高股息</div><button onclick="quickBacktest('0056.TW')" style="background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.3);color:var(--blue);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px">回測</button></div>
+      <div class="row"><div class="row-label">0050.TW 元大台灣50</div><button onclick="quickBacktest('0050.TW')" style="background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.3);color:var(--blue);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px">回測</button></div>
+      <div class="row"><div class="row-label">2317.TW 鴻海</div><button onclick="quickBacktest('2317.TW')" style="background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.3);color:var(--blue);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px">回測</button></div>
+      <div class="row"><div class="row-label">BTC-USD Bitcoin</div><button onclick="quickBacktest('BTC-USD')" style="background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.3);color:var(--blue);border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px">回測</button></div>
+    </div>
+  </div>
+  <div id="backtest-result"></div>
+</div>
+
+</body>
+</html>

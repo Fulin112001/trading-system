@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading System</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --bg2: #1a1d27; --bg3: #222536;
+    --border: #2e3148; --text: #e8eaf0; --muted: #8b8fa8;
+    --green: #00d48a; --red: #ff4f5e; --amber: #f5a623;
+    --blue: #4f8ef7; --purple: #9b7ff4;
+  }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; min-height: 100vh; }
+  .nav { display: flex; align-items: center; gap: 8px; padding: 16px 24px; background: var(--bg2); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .nav-title { font-size: 15px; font-weight: 600; color: var(--text); margin-right: 16px; white-space: nowrap; }
+  .nav-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .nav-btn.active { background: var(--bg3); color: var(--text); border-color: var(--blue); }
+  .page { display: none; padding: 24px; max-width: 900px; margin: 0 auto; }
+  .page.active { display: block; }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .metric-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .metric-value { font-size: 24px; font-weight: 600; }
+  .metric-sub { font-size: 12px; margin-top: 4px; color: var(--muted); }
+  .green { color: var(--green); } .red { color: var(--red); } .amber { color: var(--amber); } .blue { color: var(--blue); }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: none; }
+  .row-label { font-size: 14px; }
+  .row-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge { padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; }
+  .badge-green { background: rgba(0,212,138,0.15); color: var(--green); }
+  .badge-red { background: rgba(255,79,94,0.15); color: var(--red); }
+  .badge-amber { background: rgba(245,166,35,0.15); color: var(--amber); }
+  .badge-blue { background: rgba(79,142,247,0.15); color: var(--blue); }
+  .badge-gray { background: rgba(139,143,168,0.15); color: var(--muted); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .emergency-btn { width: 100%; padding: 14px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; margin-bottom: 8px; border: none; }
+  .btn-red { background: rgba(255,79,94,0.15); color: var(--red); border: 1px solid rgba(255,79,94,0.3); }
+  .btn-amber { background: rgba(245,166,35,0.15); color: var(--amber); border: 1px solid rgba(245,166,35,0.3); }
+  .btn-gray { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+  .btn-blue { background: rgba(79,142,247,0.15); color: var(--blue); border: 1px solid rgba(79,142,247,0.3); }
+  .bar-wrap { background: var(--bg3); border-radius: 99px; height: 6px; flex: 1; overflow: hidden; margin: 0 12px; }
+  .bar-fill { height: 6px; border-radius: 99px; }
+  .mode-banner { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; }
+  .mode-normal { background: rgba(0,212,138,0.1); border: 1px solid rgba(0,212,138,0.2); color: var(--green); }
+  .mode-defensive { background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.2); color: var(--amber); }
+  .mode-lockdown { background: rgba(255,79,94,0.1); border: 1px solid rgba(255,79,94,0.2); color: var(--red); }
+  input, select, textarea { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px; width: 100%; margin-bottom: 10px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .submit-btn { width: 100%; padding: 12px; border-radius: 8px; background: var(--blue); color: white; border: none; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 4px; }
+  .signal-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--green); } .dot-red { background: var(--red); } .dot-gray { background: var(--muted); }
+  .progress-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; color: var(--muted); }
+  .loading { color: var(--muted); font-size: 14px; padding: 20px 0; text-align: center; }
+  @media (max-width: 600px) { .two-col { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } .page { padding: 16px; } }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-title">📈 Trading System</div>
+  <button class="nav-btn active" onclick="showPage('trading', this)">Trading Engine</button>
+  <button class="nav-btn" onclick="showPage('bankroll', this)">Bankroll Engine</button>
+  <button class="nav-btn" onclick="showPage('finance', this)">個人財務</button>
+  <button class="nav-btn" onclick="showPage('watchlist', this)">標的評估</button>
+</div>
+
+<div id="page-trading" class="page active">
+  <div class="metric-grid" id="trading-metrics">
+    <div class="loading">載入中...</div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">最新訊號</div>
+      <div id="signals-list"><div class="loading">載入中...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">分析標的</div>
+      <input type="text" id="analyze-symbol" placeholder="輸入股票代號，例如：2330">
+      <button class="submit-btn" onclick="analyzeSymbol()">開始分析</button>
+      <div id="analyze-result"></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-bankroll" class="page">
+  <div id="risk-mode-banner" class="mode-banner mode-normal">● 風控模式：NORMAL</div>
+  <div class="metric-grid" id="risk-metrics">
+    <div class="loading">載入中...</div>
+  </div>
+  <div class="card">
+    <div class="card-title">緊急控制</div>
+    <button class="emergency-btn btn-red" onclick="emergencyStop()">🔴 全部平倉 / 緊急停止</button>
+    <button class="emergency-btn btn-amber" onclick="pauseTrading()">⏸ 暫停交易（保留倉位）</button>
+    <button class="emergency-btn btn-gray" onclick="resumeTrading()">▶ 恢復正常交易</button>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Portfolio 配置</div>
+      <div style="margin-bottom:14px">
+        <div class="progress-label"><span>長線組合</span><span>60%</span></div>
+        <div class="bar-wrap" style="margin:0"><div class="bar-fill" style="width:60%;background:var(--green)"></div></div>
+      </div>
+      <div>
+        <div class="progress-label"><span>短線組合</span><span>40%</span></div>
+        <div class="bar-wrap" style="margin:0"><div class="bar-fill" style="width:40%;background:var(--blue)"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">風控狀態</div>
+      <div id="risk-checks"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-finance" class="page">
+  <div class="metric-grid" id="finance-metrics">
+    <div class="loading">載入中...</div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">新增收支記錄</div>
+      <select id="finance-type">
+        <option value="income">收入</option>
+        <option value="expense">支出</option>
+      </select>
+      <select id="finance-category">
+        <option value="investment">投資</option>
+        <option value="venture">創業項目</option>
+        <option value="living">生活</option>
+        <option value="other">其他</option>
+      </select>
+      <input type="text" id="finance-subcategory" placeholder="細項（例如：材料費、薪資）">
+      <input type="text" id="finance-venture" placeholder="創業項目名稱（選填）">
+      <input type="number" id="finance-amount" placeholder="金額">
+      <input type="text" id="finance-note" placeholder="備註（選填）">
+      <button class="submit-btn" onclick="addFinance()">新增記錄</button>
+    </div>
+    <div class="card">
+      <div class="card-title">創業項目損益</div>
+      <div id="ventures-list"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">最近記錄</div>
+    <div id="finance-list"><div class="loading">載入中...</div></div>
+  </div>
+</div>
+
+<div id="page-watchlist" class="page">
+  <div class="metric-grid" id="watchlist-metrics">
+    <div class="loading">載入中...</div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">新增追蹤標的</div>
+      <input type="text" id="watch-symbol" placeholder="股票代號，例如：2330">
+      <input type="text" id="watch-name" placeholder="名稱，例如：台積電">
+      <select id="watch-market">
+        <option value="TW_STOCK">台股</option>
+        <option value="CRYPTO">加密貨幣</option>
+        <option value="US_STOCK">美股</option>
+      </select>
+      <input type="text" id="watch-note" placeholder="備註（選填）">
+      <button class="submit-btn" onclick="addWatchlist()">加入追蹤</button>
+    </div>
+    <div class="card">
+      <div class="card-title">標的評分排行</div>
+      <div id="watchlist-list"><div class="loading">載入中...</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000/api';
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'trading') loadTrading();
+  if (name === 'bankroll') loadBankroll();
+  if (name === 'finance') loadFinance();
+  if (name === 'watchlist') loadWatchlist();
+}
+
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  return res.json();
+}
+
+async function loadTrading() {
+  const status = await api('/status');
+  document.getElementById('trading-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">券商</div><div class="metric-value blue" style="font-size:16px">${status.broker_name}</div><div class="metric-sub">${status.market}</div></div>
+    <div class="metric"><div class="metric-label">風控模式</div><div class="metric-value ${status.risk.mode === 'NORMAL' ? 'green' : status.risk.mode === 'DEFENSIVE' ? 'amber' : 'red'}">${status.risk.mode}</div></div>
+    <div class="metric"><div class="metric-label">可用資金</div><div class="metric-value">$${status.risk.capital.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">今日損益</div><div class="metric-value ${status.risk.daily_pnl >= 0 ? 'green' : 'red'}">${status.risk.daily_pnl >= 0 ? '+' : ''}$${status.risk.daily_pnl}</div></div>
+  `;
+  const signals = await api('/signals');
+  if (signals.length === 0) {
+    document.getElementById('signals-list').innerHTML = '<div class="loading">尚無訊號記錄</div>';
+    return;
+  }
+  document.getElementById('signals-list').innerHTML = signals.slice(0, 5).map(s => `
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="signal-dot ${s.direction === 'BUY' ? 'dot-green' : s.direction === 'SELL' ? 'dot-red' : 'dot-gray'}"></div>
+        <div><div class="row-label">${s.symbol}</div><div class="row-sub">${s.reason}</div></div>
+      </div>
+      <span class="badge ${s.direction === 'BUY' ? 'badge-green' : s.direction === 'SELL' ? 'badge-red' : 'badge-gray'}">${s.direction}</span>
+    </div>
+  `).join('');
+}
+
+async function analyzeSymbol() {
+  const symbol = document.getElementById('analyze-symbol').value.trim();
+  if (!symbol) return;
+  document.getElementById('analyze-result').innerHTML = '<div class="loading">分析中...</div>';
+  const result = await api('/signals/analyze/' + symbol);
+  document.getElementById('analyze-result').innerHTML = `
+    <div style="margin-top:12px">
+      <div class="row"><div class="row-label">方向</div><span class="badge ${result.direction === 'BUY' ? 'badge-green' : result.direction === 'SELL' ? 'badge-red' : 'badge-gray'}">${result.direction}</span></div>
+      <div class="row"><div class="row-label">信心分數</div><span style="font-size:14px;color:var(--blue)">${result.confidence.toFixed(1)}%</span></div>
+      <div class="row"><div class="row-label">市場狀態</div><span style="font-size:13px;color:var(--muted)">${result.market_state}</span></div>
+      <div style="padding:10px 0;font-size:13px;color:var(--muted)">${result.reason}</div>
+    </div>
+  `;
+}
+
+async function loadBankroll() {
+  const risk = await api('/risk/status');
+  document.getElementById('risk-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">可用資金</div><div class="metric-value">$${risk.capital.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">今日損益</div><div class="metric-value ${risk.daily_pnl >= 0 ? 'green' : 'red'}">${risk.daily_pnl >= 0 ? '+' : ''}$${risk.daily_pnl}</div></div>
+    <div class="metric"><div class="metric-label">連敗次數</div><div class="metric-value ${risk.consecutive_losses >= 3 ? 'red' : risk.consecutive_losses >= 2 ? 'amber' : 'green'}">${risk.consecutive_losses}</div><div class="metric-sub">上限 3 次</div></div>
+    <div class="metric"><div class="metric-label">總回撤</div><div class="metric-value ${risk.total_drawdown >= 10 ? 'red' : 'green'}">${risk.total_drawdown.toFixed(1)}%</div></div>
+  `;
+  const banner = document.getElementById('risk-mode-banner');
+  banner.className = `mode-banner mode-${risk.mode.toLowerCase()}`;
+  banner.textContent = `● 風控模式：${risk.mode}`;
+  document.getElementById('risk-checks').innerHTML = `
+    <div class="row"><div class="row-label">每日虧損</div><span class="badge badge-green">安全</span></div>
+    <div class="row"><div class="row-label">連敗保護</div><span class="badge ${risk.consecutive_losses >= 3 ? 'badge-red' : 'badge-green'}">${risk.consecutive_losses >= 3 ? '警告' : '正常'}</span></div>
+    <div class="row"><div class="row-label">緊急停止</div><span class="badge ${risk.emergency_stop ? 'badge-red' : 'badge-green'}">${risk.emergency_stop ? '已啟動' : '未啟動'}</span></div>
+    <div class="row"><div class="row-label">可以交易</div><span class="badge ${risk.can_trade ? 'badge-green' : 'badge-red'}">${risk.can_trade ? '是' : '否'}</span></div>
+  `;
+}
+
+async function emergencyStop() {
+  if (!confirm('確定要緊急停止所有交易？')) return;
+  await api('/risk/emergency-stop', 'POST');
+  alert('緊急停止已啟動！');
+  loadBankroll();
+}
+
+async function pauseTrading() {
+  await api('/risk/pause', 'POST');
+  alert('交易已暫停');
+  loadBankroll();
+}
+
+async function resumeTrading() {
+  await api('/risk/resume', 'POST');
+  alert('已恢復正常交易');
+  loadBankroll();
+}
+
+async function loadFinance() {
+  const summary = await api('/finance/summary');
+  document.getElementById('finance-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">總收入</div><div class="metric-value green">$${summary.total_income.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">總支出</div><div class="metric-value red">$${summary.total_expense.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">淨結餘</div><div class="metric-value ${summary.net >= 0 ? 'green' : 'red'}">${summary.net >= 0 ? '+' : ''}$${summary.net.toLocaleString()}</div></div>
+  `;
+  const ventures = Object.entries(summary.ventures);
+  document.getElementById('ventures-list').innerHTML = ventures.length === 0
+    ? '<div class="loading">尚無創業項目記錄</div>'
+    : ventures.map(([name, v]) => `
+      <div class="row">
+        <div><div class="row-label">${name}</div><div class="row-sub">收入 $${v.income} / 支出 $${v.expense}</div></div>
+        <span class="badge ${v.income - v.expense >= 0 ? 'badge-green' : 'badge-red'}">${v.income - v.expense >= 0 ? '+' : ''}$${v.income - v.expense}</span>
+      </div>`).join('');
+  const entries = await api('/finance');
+  document.getElementById('finance-list').innerHTML = entries.length === 0
+    ? '<div class="loading">尚無記錄</div>'
+    : entries.slice(0, 10).map(e => `
+      <div class="row">
+        <div><div class="row-label">${e.sub_category || e.category}${e.venture ? ' · ' + e.venture : ''}</div><div class="row-sub">${e.note || ''} ${new Date(e.created_at).toLocaleDateString('zh-TW')}</div></div>
+        <span class="${e.type === 'income' ? 'green' : 'red'}" style="font-size:14px;font-weight:500">${e.type === 'income' ? '+' : '-'}$${e.amount.toLocaleString()}</span>
+      </div>`).join('');
+}
+
+async function addFinance() {
+  const body = {
+    type: document.getElementById('finance-type').value,
+    category: document.getElementById('finance-category').value,
+    sub_category: document.getElementById('finance-subcategory').value,
+    venture: document.getElementById('finance-venture').value,
+    amount: parseFloat(document.getElementById('finance-amount').value),
+    note: document.getElementById('finance-note').value
+  };
+  if (!body.amount || !body.sub_category) { alert('請填寫細項和金額'); return; }
+  await api('/finance', 'POST', body);
+  alert('記錄新增成功！');
+  loadFinance();
+}
+
+async function loadWatchlist() {
+  const items = await api('/watchlist');
+  document.getElementById('watchlist-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">追蹤標的</div><div class="metric-value">${items.length}</div></div>
+    <div class="metric"><div class="metric-label">高分標的</div><div class="metric-value green">${items.filter(i => i.score >= 80).length}</div><div class="metric-sub">評分 ≥ 80</div></div>
+    <div class="metric"><div class="metric-label">觀察中</div><div class="metric-value amber">${items.filter(i => i.status === 'watching').length}</div></div>
+  `;
+  document.getElementById('watchlist-list').innerHTML = items.length === 0
+    ? '<div class="loading">尚無追蹤標的</div>'
+    : items.map(w => `
+      <div class="row">
+        <div><div class="row-label">${w.symbol} ${w.name}</div><div class="row-sub">${w.market}${w.note ? ' · ' + w.note : ''}</div></div>
+        <div style="text-align:right">
+          <div style="font-size:18px;font-weight:600;color:${w.score >= 80 ? 'var(--green)' : w.score >= 60 ? 'var(--amber)' : 'var(--red)'}">${w.score}</div>
+          <span class="badge ${w.score >= 80 ? 'badge-green' : w.score >= 60 ? 'badge-amber' : 'badge-red'}">${w.score >= 80 ? '推薦' : w.score >= 60 ? '觀察' : '謹慎'}</span>
+        </div>
+      </div>`).join('');
+}
+
+async function addWatchlist() {
+  const body = {
+    symbol: document.getElementById('watch-symbol').value.trim(),
+    name: document.getElementById('watch-name').value.trim(),
+    market: document.getElementById('watch-market').value,
+    note: document.getElementById('watch-note').value
+  };
+  if (!body.symbol || !body.name) { alert('請填寫代號和名稱'); return; }
+  await api('/watchlist', 'POST', body);
+  alert(`${body.symbol} 已加入追蹤！`);
+  loadWatchlist();
+}
+
+loadTrading();
+</script>
+</body>
+</html>
