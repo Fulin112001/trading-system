@@ -1,0 +1,4 @@
+config/settings.json
+config/portfolio.json
+database/*.db
+exports/
