@@ -69,7 +69,7 @@
     }
   },
   "notification": {
-    "discord_webhook": "https://discord.com/api/webhooks/1503884561442934794/k2P3Q2MIMIgoGZANzyaHvs2YKQpDKzfK1p8pGqpFyTojTiEwn8POIpJ6JXov2FmyyBII",
+    "discord_webhook": "",
     "notify_on_signal": true,
     "notify_on_trade": true,
     "notify_on_risk_mode_change": true,

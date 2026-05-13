@@ -1,8 +1,9 @@
-config/settings.json
-config/portfolio.json
+venv/
+__pycache__/
+*.pyc
+*.pyo
 database/*.db
 exports/
 config/settings.json
 config/portfolio.json
-database/*.db
-exports/
+.env
