@@ -310,6 +310,36 @@ def backtest(req: BacktestRequest):
     if not result: raise HTTPException(status_code=400, detail="回測失敗，資料不足")
     return result
 
+
+import hashlib
+
+class LoginRequest(BaseModel):
+    password: str
+
+@app.post("/api/auth/login")
+def login(req: LoginRequest):
+    config = load_config()
+    correct = config.get("finance_password", "")
+    hashed = hashlib.sha256(req.password.encode()).hexdigest()
+    if hashed == correct:
+        return {"status": "success", "token": hashed}
+    raise HTTPException(status_code=401, detail="密碼錯誤")
+
+
+import hashlib
+
+class LoginRequest(BaseModel):
+    password: str
+
+@app.post("/api/auth/login")
+def login(req: LoginRequest):
+    config = load_config()
+    correct = config.get("finance_password", "")
+    hashed = hashlib.sha256(req.password.encode()).hexdigest()
+    if hashed == correct:
+        return {"status": "success", "token": hashed}
+    raise HTTPException(status_code=401, detail="密碼錯誤")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
