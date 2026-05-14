@@ -9,3 +9,6 @@ config/portfolio.json
 .env
 .env
 certs/
+venv/
+*.log
+shioaji.log
