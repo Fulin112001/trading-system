@@ -1,3 +1,8 @@
+import os
+import certifi
+os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -339,6 +344,64 @@ def login(req: LoginRequest):
     if hashed == correct:
         return {"status": "success", "token": hashed}
     raise HTTPException(status_code=401, detail="密碼錯誤")
+
+
+from backend.broker.sinopac import login as sinopac_login, get_account_balance, get_positions, get_quote as sinopac_quote, logout as sinopac_logout
+
+sinopac_connected = False
+
+@app.post("/api/sinopac/connect")
+def sinopac_connect():
+    global sinopac_connected
+    result = sinopac_login()
+    sinopac_connected = result
+    return {"status": "success" if result else "failed", "connected": sinopac_connected}
+
+@app.get("/api/sinopac/balance")
+def sinopac_balance():
+    if not sinopac_connected:
+        raise HTTPException(status_code=400, detail="請先連線永豐金")
+    balance = get_account_balance()
+    if not balance:
+        raise HTTPException(status_code=400, detail="無法取得餘額")
+    return balance
+
+@app.get("/api/sinopac/positions")
+def sinopac_positions():
+    if not sinopac_connected:
+        raise HTTPException(status_code=400, detail="請先連線永豐金")
+    return get_positions()
+
+@app.get("/api/sinopac/quote/{symbol}")
+def sinopac_get_quote(symbol: str):
+    if not sinopac_connected:
+        raise HTTPException(status_code=400, detail="請先連線永豐金")
+    result = sinopac_quote(symbol)
+    if not result:
+        raise HTTPException(status_code=400, detail="無法取得報價")
+    return result
+
+@app.post("/api/sinopac/disconnect")
+def sinopac_disconnect():
+    global sinopac_connected
+    sinopac_logout()
+    sinopac_connected = False
+    return {"status": "disconnected"}
+
+
+import threading
+
+def start_discord_bot():
+    try:
+        import sys
+        sys.path.append(os.path.dirname(__file__) + "/..")
+        from discord.discord_bot import run_bot
+        run_bot()
+    except Exception as e:
+        print(f"❌ Discord Bot 啟動失敗：{e}")
+
+discord_bot_thread = threading.Thread(target=start_discord_bot, daemon=True)
+discord_bot_thread.start()
 
 if __name__ == "__main__":
     import uvicorn

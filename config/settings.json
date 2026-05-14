@@ -4,9 +4,9 @@
     "sinopac": {
       "name": "永豐金證券",
       "market": "TW_STOCK",
-      "api_key": "",
-      "api_secret": "",
-      "account": ""
+      "api_key": "8X5CFiRvgDLTmc1XXwtiwRmmk9is3wck7wmkEzWx88Db",
+      "api_secret": "8xrKwWcpfSz4hqdvc52GHTys7hhGxxBtDveyW3ZYy21Q",
+      "account": "9A9U-0690670"
     },
     "bybit": {
       "name": "Bybit",
@@ -85,5 +85,6 @@
     "initial": 5000,
     "currency": "TWD",
     "note": "修改這裡設定你的初始資金"
-  }
+  },
+  "finance_password": "25636ecf995898a35b0d63c25a9db541a32a4c5e9ca3500e0c793af0f259dd05"
 }

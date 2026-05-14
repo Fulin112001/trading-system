@@ -7,3 +7,5 @@ exports/
 config/settings.json
 config/portfolio.json
 .env
+.env
+certs/
